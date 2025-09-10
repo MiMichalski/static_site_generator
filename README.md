@@ -1,2 +1,2 @@
 # static_site_generator
-Fourth Boot.dev project
+Static Site Generator is my fourth [Boot.dev](https://www.boot.dev) project!  
