@@ -1,13 +1,14 @@
-import os, shutil
+import os, shutil, sys
 from markdowntohtmlnode import markdown_to_html_node, extract_title
 
-def copy_static():
-    public_path = os.path.abspath("./public")
+def copy_static(destination):
+    public_path = os.path.abspath(f"./{destination}")
     print("=== Removing Public contents ===")
-    shutil.rmtree(public_path)
+    if os.path.exists(public_path):
+        shutil.rmtree(public_path)
     os.mkdir(public_path)
     print("=== Copying files recursively ===")
-    copy_files_recursively("./static", "./public")
+    copy_files_recursively("./static", f"./{destination}")
 
 def copy_files_recursively(source_path, destination_path):
     directory_contents = os.listdir(source_path)
@@ -26,7 +27,7 @@ def copy_files_recursively(source_path, destination_path):
         else:
             copy_files_recursively(content_path, target_path)
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f'Generating page from {from_path} to {dest_path} using {template_path}')
 
     try:
@@ -43,7 +44,7 @@ def generate_page(from_path, template_path, dest_path):
     
     page_content = markdown_to_html_node(page_source).to_html()
     title = extract_title(page_source)
-    full_page = template_source.replace("{{ Title }}", title).replace("{{ Content }}", page_content)
+    full_page = template_source.replace("{{ Title }}", title).replace("{{ Content }}", page_content).replace('href="/', f'href="{basepath}').replace('src="/', f'src="{basepath}')
 
     if not os.path.exists(os.path.dirname(dest_path)):
         try:
@@ -59,7 +60,7 @@ def generate_page(from_path, template_path, dest_path):
         return f'Error: {e}' 
     
 # I hate recursive functions, why couldn't it be done by queue
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     directory_contents = os.listdir(dir_path_content)
     
     if not os.path.exists(dest_dir_path):
@@ -72,18 +73,26 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
         target_path = os.path.join(dest_dir_path, content)
 
         if os.path.isfile(content_path):
-            generate_page(content_path, template_path, target_path.removesuffix(".md") + ".html")
+            generate_page(content_path, template_path, target_path.removesuffix(".md") + ".html", basepath)
         else:
-            generate_pages_recursive(content_path, template_path, target_path)
+            generate_pages_recursive(content_path, template_path, target_path, basepath)
 
 
 
 def main():
-    copy_static()
+    arguments = sys.argv
+    if len(arguments) > 1:
+        basepath = arguments[1]
+    else:
+        basepath = "/"
+
+
+    copy_static("docs")
     #generate_page("content/index.md", "template.html", "public/index.html")
     # Some higher power is trolling me here. Somehow it worked first try
 
-    generate_pages_recursive("content", "template.html", "public")
+    #generate_pages_recursive("content", "template.html", "public", basepath)
+    generate_pages_recursive("content", "template.html", "docs", basepath)
     # And once again first try.
 
 
